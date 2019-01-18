@@ -25,22 +25,33 @@ module.exports = {
           }
 
           if (command === 'GetGuildWarBattleLogByWizardId') {
-            // this.log(proxy, req, resp);
-            // this.writeRespToFile(proxy, req, resp, command);
-            this.writeBattleLogToFile(proxy, req, resp, command);
+            if (typeof resp.battle_log_list[0] !== 'undefined') {
+              this.writeBattleLogToFile(proxy, req, resp, command);
+            } else {
+              // write empty battle log?
+            }
+          } else if (command === 'GetGuildWarMatchLog') {
+            // write guild battle record
+          } else if (command === 'GetGuildWarContributeList') {
+            // write guild contribution record
+          } else if (command === '***siege commands***') {
+            // check out the following siege api commands:
+            // GetGuildSiegeRankingInfo
+            // GetGuildSiegeMatchupInfo
+            // GetGuildSiegeDefenseDeckByWizardId
+            // GetGuildSiegeBattleLogByWizardId
+            // GetGuildSiegeBaseDefenseUnitList - just for fun to see if we can see stats (doubt it)
+          } else if (command === '***labyrinth commands***') {
+            // checkout the following labyrinth api commmands:
+            // getGuildMazeClearRewardCrateSummary
+            // GetGuildMazeMemberInfoList
+            // GetGuildMazePlayInfo
+            // GetGuildMazeBattleLogByWizard
           }
         }
       } catch (e) {
         proxy.log({type: 'error', source: 'plugin', name: this.pluginName, message: `An unexpected error occured: ${e.message}`});
       }
-      
-      /*
-      if (config.Config.Plugins[this.pluginName].enabled) {
-        resp = this.sortUserData(resp);
-      }
-      // call write functions
-      this.writeGuildRosterToFile(proxy, req, resp);
-      */
     });
   },
 
@@ -74,8 +85,14 @@ module.exports = {
 
   writeBattleLogToFile(proxy, req, resp, command) {
     const wizardName = resp.battle_log_list[0].wizard_name;
-    const filename = sanitize('gw_battle_logs_' + wizardName).concat('.csv');
     const battleLog = resp.battle_log_list;
+    var filename = ''
+    if (battleLog[0].log_type == 1) {
+      filename = sanitize('gw_attack_logs_' + wizardName).concat('.csv');
+    } else {
+      filename = sanitize('gw_defense_logs_' + wizardName).concat('.csv');
+    }
+    
     const numBattles = battleLog.length;
     
     var entry = '';
