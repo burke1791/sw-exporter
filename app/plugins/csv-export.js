@@ -86,12 +86,7 @@ module.exports = {
   writeBattleLogToFile(proxy, req, resp, command) {
     const wizardName = resp.battle_log_list[0].wizard_name;
     const battleLog = resp.battle_log_list;
-    var filename = ''
-    if (battleLog[0].log_type == 1) {
-      filename = sanitize('gw_attack_logs_' + wizardName).concat('.csv');
-    } else {
-      filename = sanitize('gw_defense_logs_' + wizardName).concat('.csv');
-    }
+    const filename = sanitize('gw_battle_logs').concat('.csv');
     
     const numBattles = battleLog.length;
     
@@ -153,8 +148,10 @@ module.exports = {
           csvData.push(data);
         })
         .on('end', () => {
-          csvData.concat(entry);
-          csv.writeToPath(path.join(config.Config.App.filesPath, filename), entry, { headers }).on('finish', () => {
+          for (var log in entry) {
+            csvData.push(entry[log]);
+          }
+          csv.writeToPath(path.join(config.Config.App.filesPath, filename), csvData, { headers }).on('finish', () => {
             proxy.log({ type: 'success', source: 'plugin', name: self.pluginName, message: `Saved run data to ${filename}` });
           });
         });
