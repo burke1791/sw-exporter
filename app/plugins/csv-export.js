@@ -152,7 +152,7 @@ module.exports = {
             csvData.push(entry[log]);
           }
           csv.writeToPath(path.join(config.Config.App.filesPath, filename), csvData, { headers }).on('finish', () => {
-            proxy.log({ type: 'success', source: 'plugin', name: self.pluginName, message: `Saved run data to ${filename}` });
+            proxy.log({ type: 'success', source: 'plugin', name: self.pluginName, message: `Saved gw battle data to ${filename}` });
           });
         });
         
