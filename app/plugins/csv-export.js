@@ -24,14 +24,16 @@ module.exports = {
             this.temp[wizardID] = {};
           }
 
-          if (command === 'GetGuildWarBattleLogByWizardId') {
+          if (command === 'HubUserLogin') {
+            this.writeGuildRosterToFile(proxy, req, resp);
+          }
+          else if (command === 'GetGuildWarBattleLogByWizardId') {
             if (typeof resp.battle_log_list[0] !== 'undefined') {
               this.writeBattleLogToFile(proxy, req, resp, command);
-            } else {
-              // write empty battle log?
             }
           } else if (command === 'GetGuildWarMatchLog') {
             // write guild battle record
+            this.writeGuildRecordToFile(proxy, req, resp, command);
           } else if (command === 'GetGuildWarContributeList') {
             // write guild contribution record
           } else if (command === '***siege commands***') {
@@ -71,6 +73,7 @@ module.exports = {
   },
 
   writeRespToFile(proxy, req, resp, command) {
+    // Writes the response to a json file for inspection
     const filename = sanitize('test ' + command).concat('.json');
     
     let outFile = fs.createWriteStream(path.join(config.Config.App.filesPath, filename), {
@@ -95,15 +98,28 @@ module.exports = {
     var headers = [];
     for (var key in battleLog[0]) {
       headers.push(key);
-      entry += key + ',';
     }
 
     this.saveToFile(battleLog, filename, headers, proxy);
   },
 
+  writeGuildRecordToFile(proxy, req, resp, command) {
+    const filename = sanitize('gw_record').concat('.csv');
+    const matchLog = resp.match_log;
+    var headers = [];
+
+    if (typeof matchLog[0] !== 'undefined') {
+      for (var key in matchLog[0]) {
+        headers.push(key);
+      }
+    }
+
+    this.saveToFile(matchLog, filename, headers, proxy);
+  },
+
   writeGuildRosterToFile(proxy, req, resp) {
     const wizardName = resp.wizard_info.wizard_name;
-    const filename = sanitize('Guild Roster csv').concat('.csv');
+    const filename = sanitize('guild_roster').concat('.csv');
     var rosterCsv = this.getGuildRoster(resp);
 
     let outFile = fs.createWriteStream(path.join(config.Config.App.filesPath, filename), {
@@ -114,7 +130,6 @@ module.exports = {
     outFile.write(rosterCsv);
     outFile.end();
     proxy.log({type: 'success', source: 'plugin', name: this.defaultConfig.pluginName, message: 'Saved guild roster data to '.concat(filename) });
-
   },
 
   writeToFile(filename, data, logMessage) {
