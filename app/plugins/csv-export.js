@@ -24,7 +24,7 @@ module.exports = {
             this.temp[wizardID] = {};
           }
 
-          if (command === 'HubUserLogin') {
+          if (command === 'HubUserLogin' && config.Config.Plugins[this.pluginName].guildRoster) {
             this.writeGuildRosterToFile(proxy, req, resp);
           }
           else if (command === 'GetGuildWarBattleLogByWizardId') {
@@ -36,6 +36,9 @@ module.exports = {
             this.writeGuildRecordToFile(proxy, req, resp, command);
           } else if (command === 'GetGuildWarContributeList') {
             // write guild contribution record
+          } else if (command === 'GetGuildWarParticipationInfo') {
+            // returns a list of currently registered attack members
+            this.writeParticipationInfoToFile(proxy, req, resp, command);
           } else if (command === '***siege commands***') {
             // check out the following siege api commands:
             // GetGuildSiegeRankingInfo
@@ -114,7 +117,21 @@ module.exports = {
       }
     }
 
-    this.saveToFile(matchLog, filename, headers, proxy);
+    this.saveToFile(matchLog, filename, headers, proxy, true);
+  },
+
+  writeParticipationInfoToFile(proxy, req, resp, command) {
+    const filename = sanitize('gw_registered_attackers').concat('.csv');
+    const attackersList = resp.guildwar_member_list;
+    var headers = [];
+
+    if (typeof attackersList[0] !== 'undefined') {
+      for (var key in attackersList[0]) {
+        headers.push(key);
+      }
+    }
+
+    this.saveToFile(attackersList, filename, headers, proxy, true);
   },
 
   writeGuildRosterToFile(proxy, req, resp) {
@@ -143,33 +160,41 @@ module.exports = {
     proxy.log({type: 'success', source: 'plugin', name: this.defaultConfig.pluginName, message: logMessage });
   },
 
-  // Refactor for this plugin
-  saveToFile(entry, filename, headers, proxy) {
+  saveToFile(entry, filename, headers, proxy, overwrite = false) {
     const csvData = [];
     const self = this;
     fs.ensureFile(path.join(config.Config.App.filesPath, filename), err => {
       if (err) {
         return;
       }
-      /*
-      csv.writeToPath(path.join(config.Config.App.filesPath, filename), entry, { headers }).on('finish', () => {
-        proxy.log({type: 'success', source: 'plugin', name: self.pluginName, message: `Saved battle data to ${filename}` });
-      });
-      */
       
-      csv
-        .fromPath(path.join(config.Config.App.filesPath, filename), { ignoreEmpty: true, headers, renameHeaders: true })
-        .on('data', function(data) {
-          csvData.push(data);
-        })
-        .on('end', () => {
-          for (var log in entry) {
-            csvData.push(entry[log]);
-          }
-          csv.writeToPath(path.join(config.Config.App.filesPath, filename), csvData, { headers }).on('finish', () => {
-            proxy.log({ type: 'success', source: 'plugin', name: self.pluginName, message: `Saved gw battle data to ${filename}` });
+      if (overwrite) {
+        csv
+          .fromPath(path.join(config.Config.App.filesPath, filename), { ignoreEmpty: true, headers, renameHeaders: true })
+          .on('data', function(data) {
+            // csvData.push(data);
+          })
+          .on('end', () => {
+            csv.writeToPath(path.join(config.Config.App.filesPath, filename), entry, { headers }).on('finish', () => {
+              proxy.log({ type: 'success', source: 'plugin', name: self.pluginName, message: `Saved gw battle data to ${filename}` });
+            });
           });
-        });
+      } else {
+        csv
+          .fromPath(path.join(config.Config.App.filesPath, filename), { ignoreEmpty: true, headers, renameHeaders: true })
+          .on('data', function(data) {
+            csvData.push(data);
+          })
+          .on('end', () => {
+            for (var log in entry) {
+              csvData.push(entry[log]);
+            }
+            csv.writeToPath(path.join(config.Config.App.filesPath, filename), csvData, { headers }).on('finish', () => {
+              proxy.log({ type: 'success', source: 'plugin', name: self.pluginName, message: `Saved gw battle data to ${filename}` });
+            });
+          });
+      }
+      
         
     });
   },
